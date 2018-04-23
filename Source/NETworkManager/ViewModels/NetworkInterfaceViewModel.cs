@@ -123,59 +123,67 @@ namespace NETworkManager.ViewModels
                 if (value == _selectedNetworkInterface)
                     return;
 
-                if (value != null)
+                try
                 {
-                    if (!_isLoading)
-                        SettingsManager.Current.NetworkInterface_SelectedInterfaceId = value.Id;
-
-                    // Details
-                    DetailsName = value.Name;
-                    DetailsDescription = value.Description;
-                    DetailsType = value.Type;
-                    DetailsPhysicalAddress = value.PhysicalAddress;
-                    DetailsStatus = value.Status;
-                    DetailsSpeed = value.Speed;
-                    DetailsIPv4Address = value.IPv4Address;
-                    DetailsSubnetmask = value.Subnetmask;
-                    DetailsIPv4Gateway = value.IPv4Gateway;
-                    DetailsIPv4DhcpEnabled = value.DhcpEnabled;
-                    DetailsIPv4DhcpServer = value.DhcpServer;
-                    DetailsDhcpLeaseObtained = value.DhcpLeaseObtained;
-                    DetailsDhcpLeaseExpires = value.DhcpLeaseExpires;
-                    DetailsIPv6AddressLinkLocal = value.IPv6AddressLinkLocal;
-                    DetailsIPv6Address = value.IPv6Address;
-                    DetailsIPv6Gateway = value.IPv6Gateway;
-                    DetailsDNSAutoconfigurationEnabled = value.DNSAutoconfigurationEnabled;
-                    DetailsDNSSuffix = value.DNSSuffix;
-                    DetailsDNSServer = value.DNSServer;
-
-                    // Configuration
-                    if (value.DhcpEnabled)
+                    if (value != null)
                     {
-                        ConfigEnableDynamicIPAddress = true;
-                    }
-                    else
-                    {
-                        ConfigEnableStaticIPAddress = true;
-                        ConfigIPAddress = (value != null) ? value.IPv4Address.FirstOrDefault().ToString() : string.Empty;
-                        ConfigSubnetmaskOrCidr = (value.Subnetmask != null) ? value.Subnetmask.FirstOrDefault().ToString() : string.Empty;
-                        ConfigGateway = (value.IPv4Gateway != null) ? value.IPv4Gateway.FirstOrDefault().ToString() : string.Empty;
-                    }
+                        if (!_isLoading)
+                            SettingsManager.Current.NetworkInterface_SelectedInterfaceId = value.Id;
 
-                    if (value.DNSAutoconfigurationEnabled)
-                    {
-                        ConfigEnableDynamicDNS = true;
-                    }
-                    else
-                    {
-                        ConfigEnableStaticDNS = true;
+                        // Details
+                        DetailsName = value.Name;
+                        DetailsDescription = value.Description;
+                        DetailsType = value.Type;
+                        DetailsPhysicalAddress = value.PhysicalAddress;
+                        DetailsStatus = value.Status;
+                        DetailsSpeed = value.Speed;
+                        DetailsIPv4Address = value.IPv4Address;
+                        DetailsSubnetmask = value.Subnetmask;
+                        DetailsIPv4Gateway = value.IPv4Gateway;
+                        DetailsIPv4DhcpEnabled = value.DhcpEnabled;
+                        DetailsIPv4DhcpServer = value.DhcpServer;
+                        DetailsDhcpLeaseObtained = value.DhcpLeaseObtained;
+                        DetailsDhcpLeaseExpires = value.DhcpLeaseExpires;
+                        DetailsIPv6AddressLinkLocal = value.IPv6AddressLinkLocal;
+                        DetailsIPv6Address = value.IPv6Address;
+                        DetailsIPv6Gateway = value.IPv6Gateway;
+                        DetailsDNSAutoconfigurationEnabled = value.DNSAutoconfigurationEnabled;
+                        DetailsDNSSuffix = value.DNSSuffix;
+                        DetailsDNSServer = value.DNSServer;
 
-                        List<IPAddress> DNSServers = value.DNSServer.Where(x => x.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork).ToList();
-                        ConfigPrimaryDNSServer = DNSServers.Count > 0 ? DNSServers[0].ToString() : string.Empty;
-                        ConfigSecondaryDNSServer = DNSServers.Count > 1 ? DNSServers[1].ToString() : string.Empty;
-                    }
+                        // Configuration
+                        if (value.DhcpEnabled)
+                        {
+                            ConfigEnableDynamicIPAddress = true;
+                        }
+                        else
+                        {
+                            ConfigEnableStaticIPAddress = true;
+                            ConfigIPAddress = (value.IPv4Address != null) ? value.IPv4Address.FirstOrDefault().ToString() : string.Empty;
+                            ConfigSubnetmaskOrCidr = (value.Subnetmask != null) ? value.Subnetmask.FirstOrDefault().ToString() : string.Empty;
+                            ConfigGateway = (value.IPv4Gateway != null) ? value.IPv4Gateway.FirstOrDefault().ToString() : string.Empty;
+                        }
 
-                    CanConfigure = value.IsOperational;
+                        if (value.DNSAutoconfigurationEnabled)
+                        {
+                            ConfigEnableDynamicDNS = true;
+                        }
+                        else
+                        {
+                            ConfigEnableStaticDNS = true;
+
+                            List<IPAddress> DNSServers = value.DNSServer.Where(x => x.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork).ToList();
+                            ConfigPrimaryDNSServer = DNSServers.Count > 0 ? DNSServers[0].ToString() : string.Empty;
+                            ConfigSecondaryDNSServer = DNSServers.Count > 1 ? DNSServers[1].ToString() : string.Empty;
+                        }
+
+                        CanConfigure = value.IsOperational;
+                    }
+                }
+                catch (NullReferenceException ex)
+                {
+                    MessageBox.Show(ex.ToString());
+                    throw;
                 }
 
                 _selectedNetworkInterface = value;
@@ -691,17 +699,25 @@ namespace NETworkManager.ViewModels
         {
             IsNetworkInterfaceLoading = true;
 
-            NetworkInterfaces = await Models.Network.NetworkInterface.GetNetworkInterfacesAsync();
-
-            // Get the last selected interface, if it is still available on this machine...
-            if (NetworkInterfaces.Count > 0)
+            try
             {
-                NetworkInterfaceInfo info = NetworkInterfaces.Where(s => s.Id == SettingsManager.Current.NetworkInterface_SelectedInterfaceId).FirstOrDefault();
+                NetworkInterfaces = await Models.Network.NetworkInterface.GetNetworkInterfacesAsync();
 
-                if (info != null)
-                    SelectedNetworkInterface = info;
-                else
-                    SelectedNetworkInterface = NetworkInterfaces[0];
+                // Get the last selected interface, if it is still available on this machine...
+                if (NetworkInterfaces.Count > 0)
+                {
+
+                    NetworkInterfaceInfo info = NetworkInterfaces.Where(s => s.Id == SettingsManager.Current.NetworkInterface_SelectedInterfaceId).FirstOrDefault();
+
+                    if (info != null)
+                        SelectedNetworkInterface = info;
+                    else
+                        SelectedNetworkInterface = NetworkInterfaces[0];
+                }
+            }
+            catch (NullReferenceException ex)
+            {
+                MessageBox.Show(ex.ToString());
             }
 
             IsNetworkInterfaceLoading = false;
